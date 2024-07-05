@@ -1,0 +1,76 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  pythonVersion: '3.8'
+
+# Azure Resource Manager connection created during pipeline creation
+  azureServiceConnectionId: 'service_connection_og'
+
+# Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+# Environment name
+  environmentName: 'StatsTablesLite'
+
+# Web app name
+  webAppName: 'StatsTablesLite'
+
+# Project root folder.
+  projectRoot: $(System.DefaultWorkingDirectory)
+
+jobs:
+- job: BuildJob
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Use Python $(pythonVersion)'
+
+    - script: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+      displayName: 'Install dependencies'
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive files'
+      inputs:
+        rootFolderOrFile: '$(projectRoot)'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+        replaceExistingArchive: true
+
+    - upload: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+      displayName: 'Upload package'
+      artifact: drop
+
+- job: DeploymentJob
+  dependsOn: BuildJob
+  pool:
+    vmImage: $(vmImageName)
+  environment: $(environmentName)
+  steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Use Python version'
+
+    - task: AzureWebApp@1
+      inputs:
+        azureSubscription: $(azureServiceConnectionId)
+        appName: $(webAppName)
+        package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
+      displayName: 'Deploy to Azure Web App'

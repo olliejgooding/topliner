@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload CSV</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .container div {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        h1, h3 {
+            text-align: center;
+        }
+
+        .button-container {
+            text-align: center;
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload CSV File</h1>
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
+        <div class="container">
+        <input type="file" name="file">
+        <button type="submit">Upload</button></div>
+    </form>
+    {% if columns %}
+        <form method="post" action="{{ url_for('process') }}">
+            <input type="hidden" name="filename" value="{{ filename }}">
+
+            <div class="container">
+                <div>
+                    <h3>Select Row Variables:</h3>
+                    {% for column in columns %}
+                        <input type="checkbox" name="row_vars" value="{{ column }}">{{ column }}<br>
+                    {% endfor %}
+                </div>
+                <div>
+                    <h3>Select Column Variables:</h3>
+                    {% for column in columns %}
+                        <input type="checkbox" name="col_vars" value="{{ column }}">{{ column }}<br>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <h3 style="text-align: center;">Select Weight Variable:</h3>
+            <div style="text-align: center;">
+                <select name="weight_var">
+                    <option value="">None</option>
+                    {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="button-container">
+                <button type="submit">Process</button>
+            </div>
+        </form>
+    {% endif %}
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function (event) {
+            let weightVar = document.querySelector('select[name="weight_var"]').value;
+            if (weightVar === "None") {
+                document.querySelector('select[name="weight_var"]').value = "";
+            }
+        });
+    </script>
+</body>
+</html>
